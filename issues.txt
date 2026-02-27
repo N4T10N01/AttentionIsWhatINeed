@@ -1,0 +1,16 @@
+Installation Process:
+
+pytorch 0.3.0 does not exist as a wheel or install through standard virtual environment channels, such as conda or venv. Already had to install conda environment with v=3.6 to enable use of some of the code posted. May cause more issues later down the line. Failed to install other package equivlants from 2018 like spacey 2.0.18 and had to upgrade to slightly later versions.
+
+#pytorch 0.4.1
+#numpy=1.15.4 matplotlib=2.2.3 seaborn=0.8.1 cython=0.29
+#spacy==2.1.8
+#varies from original version
+
+Architecture implementation
+
+In the multihead attention function, I was confused by why 
+
+self.linears = clones(nn.Linear(d_model, d_model), 4) 
+
+was permissable seeing linear projection was happening for dimension d_k. It turns out, using this layer in tandem with [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2) for l, x in zip(self.linears, (query, key, value))] captures each individual projection for the queries, key, and values together in one larger matrix, matrix. In fact, X*W = Q and Q*W_d = projection for example, but ultimately X*W*W_d= projection, and W*W_d is just some learned weight parameter, so X*W' produces the projection just fine, which is what the line of code enforces.
