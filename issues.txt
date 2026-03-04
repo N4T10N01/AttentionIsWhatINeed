@@ -14,3 +14,34 @@ In the multihead attention function, I was confused by why
 self.linears = clones(nn.Linear(d_model, d_model), 4) 
 
 was permissable seeing linear projection was happening for dimension d_k. It turns out, using this layer in tandem with [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2) for l, x in zip(self.linears, (query, key, value))] captures each individual projection for the queries, key, and values together in one larger matrix, matrix. In fact, X*W = Q and Q*W_d = projection for example, but ultimately X*W*W_d= projection, and W*W_d is just some learned weight parameter, so X*W' produces the projection just fine, which is what the line of code enforces.
+
+self.lut = nn.Embedding(vocab, d_model)
+-> is effectively a linear layer that maps to the embedding size specified from the vocab size but allows just an index to be passed representing the one hot vector of the vocab instead of having to pass an entire one hot vector into the layer. It is built to return an embedding vector based off the assumption it receives one hot vectors. But learned weights are equivalent to a linear layer
+
+class PositionalEncoding(nn.Module):
+    "Implement the PE function."
+    def __init__(self, d_model, dropout, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        
+        # Compute the positional encodings once in log space.
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) *
+                             -(math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+
+Came to understand it sets up a unique sinusoid for each dimension and as position increases you move along that sinusoid. 
+
+If the lowest-frequency sinusoid has a wavelength longer than the maximum context window, then positions do not alias (wrap phase), allowing absolute position to be uniquely encoded, while higher frequencies encode relative structure. The lower dimensions with high frequencies capture relative distance, or spread along a set window size shorter than the contxtw window, because the sinusoid will cycle after its period, meaning positions will share the same value for that given dimension over length. This captures multiple aspects of two word positions relative to each other. Position reshapes the embedding geometry in a structured way that preserves semantic structure while making position linearly recoverable.
+
+Errors ran into due to torch 0.4.1 instead of 0.3.0 finally occurred with this encoding function also, as the position tensor as well as div term had to be converted to float for torch.exp to work since it's base type for arange is long.
+
+Issue with random data generator code as it was originally, had to be redone.
+
+Issue with original label smoothing which did not correctly guard for 0 dimension masks, had to change from dim to numel b/c dim still allowed 1 dimensional empty vectors
+
+Issues with getting loss to work in pytorch 0.4.1 version which doesn't automatically convert long tensors in operations, so had to add .float to any line involving float in the SimpleLossCompute class
