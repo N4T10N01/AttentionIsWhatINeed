@@ -45,3 +45,26 @@ Issue with random data generator code as it was originally, had to be redone.
 Issue with original label smoothing which did not correctly guard for 0 dimension masks, had to change from dim to numel b/c dim still allowed 1 dimensional empty vectors
 
 Issues with getting loss to work in pytorch 0.4.1 version which doesn't automatically convert long tensors in operations, so had to add .float to any line involving float in the SimpleLossCompute class
+
+Got beam search working for initial random vector task. Learned how its search works by building k beams from each of the beams in the current beam set. It does so by taking each beam, decoding the next word probabilities for it, taking the top k and using the associated words to build k new beams. This totals up to k*k beams each iteration. At the end of each iteration, it culls these k*k beams into k beams once again. By looking ahead and attending to multiple sequences, it is more informed in its decision than greedy decoding which makes a more local decision each time.
+
+Example of older CUDA working suboptimally with modern GPUs, seems old CUDA code could potentially work but run much slower: 
+UserWarning: 
+    Found GPU0 NVIDIA GeForce RTX 3050 Ti Laptop GPU which requires CUDA_VERSION >= 9000 for
+     optimal performance and fast startup time, but your PyTorch was compiled
+     with CUDA_VERSION 8000. Please install the correct PyTorch binary
+     using instructions from http://pytorch.org
+
+Created BPE tokenizer, using traditional methods like adding </w> as eow to denote word boundaries and adding @@ at the end of subwords to properly detokenize later on. Pre-tokenization just required white space/punctuation splitting and adding the </w> boundary. These are the techniques of the original BPE tokenizer found here https://github.com/rsennrich/subword-nmt/blob/master/subword_nmt/apply_bpe.py, which is the github of Rico Sennrich, author of Neural Machine Translation of Rare Words with Subword Units. This would have been the version used by the original transformer paper. Adding _ was optional like the tutorial had was just another form of word boundary enforcement but from the start of a word, and seems to be an artifact of sentencePiece BPE as a form of denoting word boundary, but isn't necessary.
+
+Attempting to split IWSLT dataset causes error as follows: ReadError: not a gzip file. Seems across Torch versions, dataset has either been defunct/moved or changed in its loading procedure. 
+- Confirmed that old link grabbing IWSLT is now out of commision.
+-https://wit3.fbk.eu/home was the home page and reference link huggingface used in their dataset library. It leads to a 404 error now. Tried to be clever and use modern python instead of datasets for python 3.6 but it uses the same link and thus cannot fetch anything
+- cannot be found on wayback machine 
+- found older dataset version without 2014 testsets that 2016 IWSLT compiled at 
+- was found here http://dl.fbaipublicfiles.com/fairseq/data/iwslt14/de-en.tgz on random github discussion thread about the link being dead
+- new dataset still didn't work with torchtext split function b/c 2013 training split doesn't exist in old one obtained
+- looked to download WMT-14 set instead, but torchtext cannot attain that one either 
+- used modern python to download WMT14 splits and will attempt to substitute those instead, although this will make training much more expensive and tougher to get a demo model from to give me confidence b/c the dataset will be much larger. May try to manually shrink parts of WMT14 training split used instead to emulate small size of IWSLT for initial testing to gain confidence the training setup is working.
+
+Taught me how datasets allows you to load data, it uses a reference link to the data at runtime that is provided by hugging face. I thought maybe the library itself hardstored the data, but that isn't the case always.
