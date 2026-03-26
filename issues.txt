@@ -76,3 +76,15 @@ In building BPE vocab, learned vocab is build via target-source joint training, 
 Initial BPE training took 9 hours, much too inefficient, especially because I accidentally scheduled it for a vocab size of 32000 instead of 37000 (mixed up numbers given for en-fr and de-en vocabs from paper). Had to re-code it to make it efficient enough to complete within an hour. Runs fast for initial set of merge rules but VRAM/memory gets capped and starts running immensely slow. Should take around 42 minutes based on 6 minute rate for first 5000 merge rules (which have more associated words to sift through), but slows down to 3-4 hours as memory gets full (switches to hard drive memory that demands page switching instead of fast access memory on the same page and struggles to find open spots for new additions.) 
 
 Will try on lab computer now.
+
+On lab computer, with improved BPE training code, it took 155 minutes or roughly 2.5 hours. Still not too fast but much better than before. Slowdown as merge count grew higher occurred once again, likely due to available VRAM for program filling up.
+
+BPEtokenizer s has ome words in the dictionary are stored as A</w> while others are stored as A but when tokenizing, </w> is removed. So "kann</w>" in the vocab appears as "kann" and cannot be accessed. Fixed by stripping vocab of <\w> aand <w\> on word index look up (stoi call training does for 1 hot encoding). Had to do the same for @@ when its used in a lookup, b/c subwords possess @@ in tokenization but not in vocab.
+
+CUDA 8.0 can't work with current GPUs, doesn't provide api to properly utilize memory and fails on batch sizes greater than 500. That or instructions of CUDA 8.0 can't transfer to newer gpus.
+
+CPU usage has issues as old pytorch doesn't automatically convert layers out of cuda for CPU so it had to be manually done using by setting iterators paramater of device=0 which needs to be set to -1 when working with the CPU. Otherwise, tensors will be of different types and device mismatch of old pytorch version will occur. Effectively, need to hard specify everything to use CPU or computation graph for gradient will get messed up.
+
+Dimensionality issue with loss tensor calculation, which arose b/c of lack of computation graph? yes, loss didn't grab computation graph as requires grad returns false. This is because of the .data function which originally accessed raw data in tensor but once raw data became almagamated with tensor objects in pytorch 0.4.1, .data came to serve as a way to detach data from the computation graph.
+
+Running on  CPU crashed lab computer at a batch size of 2000. Have to get CUDA working. Attempting to overhaul and re-run framework with torch=1.13 and cuda=11.7. Had to move all the way to torch 2.1 and cuda12.1. Still running to memory issues due to lines like torch.nonzero(A==B) which not only produces a boolean tensor of the same shape as target but generate a tensor of indices that leads to integer overflow issue that happens when numel exceeds 2^31-1. Fixed by getting rid of nonzero part and just keeping A==B so it' lazily computed.
