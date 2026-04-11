@@ -179,22 +179,19 @@ class BPETokenizer:
 
             split = self.tokenize_word(word)
 
-            split = [s.replace("</w>", "") for s in split]
-
             for i, token in enumerate(split):
 
-                if i < len(split) - 1:
-                    tokens.append(token + "@@")
-                else:
-                    tokens.append(token)
+                tokens.append(token)
 
         return tokens
 
 
     def detokenize(self, tokens):
 
-        sentence = " ".join(tokens)
-        sentence = sentence.replace("@@ ", "")
+        sentence = "".join(tokens)
+        sentence = sentence.replace("</w>", " ")\
+            .replace("<s>", "").replace("</s>", "")\
+            .replace("<blank>", "")
         return sentence
 
 
