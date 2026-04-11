@@ -40,7 +40,6 @@ def beam_search_decode(model, src, src_mask, max_len, start_symbol,
 
     memory = model.encode(src, src_mask)
 
-    # (sequence, log_prob, finished_flag)
     beams = [(torch.ones(1,1).fill_(start_symbol).type_as(src), 0.0, False)]
 
     def length_penalty(length):
@@ -54,7 +53,6 @@ def beam_search_decode(model, src, src_mask, max_len, start_symbol,
 
         for seq, score, finished in beams:
 
-            # --- DO NOT expand finished beams ---
             if finished:
                 new_beams.append((seq, score, True))
                 continue
@@ -106,17 +104,15 @@ def beam_search_decode(model, src, src_mask, max_len, start_symbol,
 def translate_sentence(model, sentence, src_vocab, tgt_vocab, bpe_tokenizer,
                        max_len=50, beam_size=5, alpha=0.6, device=None):
     
-    # --- Tokenize sentence and convert to indices ---
+
     tokens = bpe_tokenizer.tokenize(sentence)
     src_indices = [src_vocab.stoi[tok] for tok in tokens]
     src_tensor = torch.LongTensor(src_indices).unsqueeze(0).to(device)  # [1, seq_len]
     src_mask = torch.ones(1, 1, src_tensor.size(1)).type_as(src_tensor)
     
-    # Start symbol
     start_symbol = tgt_vocab.stoi[BOS_WORD]
     eos_symbol = tgt_vocab.stoi[EOS_WORD]
-    
-    # --- Call your existing beam search ---
+
     translated_indices = beam_search_decode(model, src_tensor, src_mask,
                                                max_len=max_len,
                                                start_symbol=start_symbol,
@@ -126,7 +122,6 @@ def translate_sentence(model, sentence, src_vocab, tgt_vocab, bpe_tokenizer,
     # translated_indices = greedy_decode(model, src_tensor, src_mask,
     #                                   max_len=max_len, start_symbol=start_symbol, eos_symbol=eos_symbol)
     
-    # --- Convert indices to tokens and form string ---
     translated_tokens = [tgt_vocab.itos[idx.item()] for idx in translated_indices[0]]  # batch=0
 
     
@@ -206,7 +201,6 @@ def moses_tokenize_13a(text):
     return text.strip()
 
 
-# --- BLEU evaluation directly from files ---
 def compute_bleu_wmt14(model,
                        src_file,
                        tgt_file,
@@ -245,13 +239,12 @@ def compute_bleu_wmt14(model,
                 hypotheses.append(pred_tok)
                 references.append(ref_tok)
 
-    # --- Compute BLEU using your existing function ---
     bleu = bleu_score(references, hypotheses)
 
     return bleu
 
 if __name__ == "__main__":
-    # --- Usage ---
+
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     cwd = os.getcwd() 
