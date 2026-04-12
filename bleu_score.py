@@ -5,7 +5,7 @@ from collections import Counter
 import math
 from BPE_tokenizer import BPETokenizer
 from make_model import make_model, subsequent_mask
-from training_loop2 import  BOS_WORD, EOS_WORD, BLANK_WORD
+from training_loop_final import  BOS_WORD, EOS_WORD, BLANK_WORD
 import re
 
 class TranslationVocab:

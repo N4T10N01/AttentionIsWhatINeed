@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     # Load model
     model = make_model(vocab_size, vocab_size, N=6).to(device)
-    checkpoint = torch.load(f"{cwd}/test/epoch_19.pt", map_location=device) # Adjust path as needed
+    checkpoint = torch.load(f"{cwd}/checkpoints42/epoch_19.pt", map_location=device) # Adjust path as needed
     model.load_state_dict(checkpoint['model'])
     print(checkpoint['val_loss'])
     model.eval()

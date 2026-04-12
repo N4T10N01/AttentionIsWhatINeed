@@ -1,6 +1,5 @@
 import os
 import time
-import math
 import random
 import torch
 import torch.nn as nn
@@ -8,7 +7,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
 from make_model import *
-from BPE_tokenizer2 import *
+from BPE_tokenizer import *
 
 # === DDP CHANGE ===
 def setup_distributed():
@@ -233,21 +232,6 @@ def load_parallel_corpus(de_path, en_path, shuffle=False, pool_size=1000, seed=4
 # =========================================================
 # === VOCAB ===============================================
 # =========================================================
-
-class SimpleVocab:
-    def __init__(self, vocab):
-        self.itos = list(dict.fromkeys(tok.replace("</w>", "") for tok in vocab))
-        base = {tok: i for i, tok in enumerate(self.itos)}
-
-        class NormalizedDict(dict):
-            def __getitem__(self, key):
-                key = key.replace("@@", "").replace("</w>", "")
-                return dict.__getitem__(self, key)
-
-        self.stoi = NormalizedDict(base)
-
-    def __len__(self):
-        return len(self.itos)
 
 
 class TranslationVocab:
